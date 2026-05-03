@@ -61,7 +61,10 @@
       { id: "volunteer", label: "Explore volunteering at parish", icon: "🤝", category: "Community", priority: "low" },
     ];
 
-    function getTodayKey() { return new Date().toISOString().split("T")[0]; }
+    function toDateKey(d) {
+      return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    }
+    function getTodayKey() { return toDateKey(new Date()); }
     function countSundaysSinceEaster() {
       const easter = new Date("2025-04-20T12:00:00");
       const now = new Date();
@@ -73,14 +76,14 @@
     }
     function formatDayLabel(dateKey) {
       const yest = new Date(); yest.setDate(yest.getDate() - 1);
-      if (dateKey === yest.toISOString().split("T")[0]) return "Yesterday";
+      if (dateKey === toDateKey(yest)) return "Yesterday";
       return new Date(dateKey + "T12:00:00").toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" });
     }
     function getWeekDays() {
       const days = [], today = new Date();
       for (let i = 6; i >= 0; i--) {
         const d = new Date(today); d.setDate(today.getDate() - i);
-        days.push(d.toISOString().split("T")[0]);
+        days.push(toDateKey(d));
       }
       return days;
     }
@@ -126,11 +129,11 @@
         const newStreaks = {};
         HABITS.forEach(h => {
           let streak = 0, d = new Date();
-          const todayKey = d.toISOString().split("T")[0];
+          const todayKey = toDateKey(d);
           // If today isn't checked yet, start counting from yesterday so the streak doesn't reset every morning
           if (!habits[todayKey]?.[h.id]) d.setDate(d.getDate() - 1);
           while (true) {
-            const key = d.toISOString().split("T")[0];
+            const key = toDateKey(d);
             if (habits[key]?.[h.id]) { streak++; d.setDate(d.getDate() - 1); } else break;
           }
           newStreaks[h.id] = streak;
