@@ -66,7 +66,7 @@
     }
     function getTodayKey() { return toDateKey(new Date()); }
     function countSundaysSinceEaster() {
-      const easter = new Date("2025-04-20T12:00:00");
+      const easter = new Date("2026-04-05T12:00:00");
       const now = new Date();
       const latestSunday = new Date(now);
       latestSunday.setDate(now.getDate() - now.getDay()); // rewind to most recent Sunday
@@ -394,7 +394,7 @@
               <div style={{ marginTop: 10, padding: "20px", background: C.accentLight, borderRadius: 16, border: `1px solid ${C.accentMid}`, textAlign: "center" }}>
                 <div style={{ fontSize: 24, marginBottom: 10 }}>✝️</div>
                 <div style={{ ...serif, fontSize: 16, fontStyle: "italic", color: C.textMid, lineHeight: 1.7 }}>
-                  Returned to the Church on<br /><span style={{ color: C.accent }}>Good Friday & Easter 2025</span>
+                  Returned to the Church on<br /><span style={{ color: C.accent }}>Good Friday & Easter 2026</span>
                 </div>
                 <div style={{ fontSize: 12, color: C.textLight, marginTop: 6 }}>{countSundaysSinceEaster()} Masses attended · Keep going 🤍</div>
               </div>
