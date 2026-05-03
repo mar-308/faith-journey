@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Faith Journey</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body style="margin:0; padding:0;">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    const FONT_LINK = "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@300;400;500&display=swap";
+
+    const VERSES = [
+      { text: "I can do all things through Christ who strengthens me.", ref: "Philippians 4:13" },
+      { text: "For I know the plans I have for you, declares the Lord, plans to prosper you and not to harm you.", ref: "Jeremiah 29:11" },
+      { text: "Trust in the Lord with all your heart and lean not on your own understanding.", ref: "Proverbs 3:5" },
+      { text: "Be still and know that I am God.", ref: "Psalm 46:10" },
+      { text: "The Lord is my shepherd; I shall not want.", ref: "Psalm 23:1" },
+      { text: "Come to me, all you who are weary and burdened, and I will give you rest.", ref: "Matthew 11:28" },
+      { text: "Your word is a lamp to my feet and a light to my path.", ref: "Psalm 119:105" },
+      { text: "Ask and it will be given to you; seek and you will find.", ref: "Matthew 7:7" },
+      { text: "You are the light of the world. A city set on a hill cannot be hidden. Let your light shine before others, that they may see your good deeds and glorify your Father in heaven.", ref: "Matthew 5:14–16" },
+    ];
+
+    const PHASES = [
+      { id: 1, title: "Sunday Mass", subtitle: "Build the rhythm", icon: "⛪", accent: "#B5936A", status: "active", detail: "Attend Sunday Mass weekly. Pair with brunch to make it something you look forward to.", milestone: "4 Sundays in a row" },
+      { id: 2, title: "Daily Prayer", subtitle: "Morning & evening", icon: "🙏", accent: "#8FA888", status: "active", detail: "Short morning prayer + evening reflection of your day. Short and sustainable beats long and inconsistent.", milestone: "30 days of daily prayer" },
+      { id: 3, title: "Bible in a Year", subtitle: "Daily podcast", icon: "📖", accent: "#7A9DB8", status: "active", detail: "Listen daily to build Scripture familiarity without overwhelm.", milestone: "100 episodes" },
+      { id: 4, title: "The Rosary", subtitle: "Even one decade counts", icon: "📿", accent: "#A08ABE", status: "upcoming", detail: "A natural next step once daily prayer is established. Start with just one decade a day.", milestone: "Pray the full Rosary" },
+      { id: 5, title: "Confession", subtitle: "A fresh start", icon: "✝️", accent: "#B88A7A", status: "upcoming", detail: "A huge milestone. Talk to a priest first to feel prepared. This is one of the most healing sacraments.", milestone: "First Confession" },
+      { id: 6, title: "Deeper Community", subtitle: "Sacraments & service", icon: "🕊️", accent: "#7AAAA0", status: "future", detail: "Pre-Cana, volunteering, Confirmation prep (September). The full sacramental path.", milestone: "Confirmation" },
+    ];
+
+    const HABITS = [
+      { id: "mass", label: "Sunday Mass", icon: "⛪", phase: 1, sundayOnly: true },
+      { id: "morning_prayer", label: "Morning Prayer", icon: "🌅", phase: 2 },
+      { id: "evening_reflection", label: "Evening Reflection", icon: "🌙", phase: 2 },
+      { id: "bible_podcast", label: "Bible in a Year", icon: "🎧", phase: 3 },
+      { id: "rosary", label: "Rosary", icon: "📿", phase: 4 },
+    ];
+
+    const TODOS = [
+      { id: "priest", label: "Talk to a priest", icon: "🕊️", category: "Sacramental", priority: "high" },
+      { id: "annulment", label: "Start marriage annulment process", icon: "📋", category: "Sacramental", priority: "high" },
+      { id: "precana", label: "Begin Pre-Cana", icon: "💍", category: "Sacramental", priority: "medium" },
+      { id: "confirmation", label: "Start Confirmation prep (September)", icon: "✝️", category: "Sacramental", priority: "medium" },
+      { id: "rosary_learn", label: "Learn how to pray the Rosary", icon: "📿", category: "Prayer", priority: "medium" },
+      { id: "confession_prep", label: "Prepare for first Confession", icon: "🤍", category: "Prayer", priority: "medium" },
+      { id: "volunteer", label: "Explore volunteering at parish", icon: "🤝", category: "Community", priority: "low" },
+    ];
+
+    function getTodayKey() { return new Date().toISOString().split("T")[0]; }
+    function countSundaysSinceEaster() {
+      const easter = new Date("2025-04-20T12:00:00");
+      const now = new Date();
+      const latestSunday = new Date(now);
+      latestSunday.setDate(now.getDate() - now.getDay()); // rewind to most recent Sunday
+      latestSunday.setHours(12, 0, 0, 0);
+      const weeks = Math.round((latestSunday - easter) / (7 * 24 * 60 * 60 * 1000));
+      return weeks + 1; // +1 to include Easter itself
+    }
+    function formatDayLabel(dateKey) {
+      const yest = new Date(); yest.setDate(yest.getDate() - 1);
+      if (dateKey === yest.toISOString().split("T")[0]) return "Yesterday";
+      return new Date(dateKey + "T12:00:00").toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" });
+    }
+    function getWeekDays() {
+      const days = [], today = new Date();
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(today); d.setDate(today.getDate() - i);
+        days.push(d.toISOString().split("T")[0]);
+      }
+      return days;
+    }
+
+    const C = {
+      bg: "#FAF8F5",
+      surface: "#FFFFFF",
+      border: "#EDE9E3",
+      accent: "#B5936A",
+      accentLight: "#F7F0E8",
+      accentMid: "#D4B896",
+      text: "#3A3028",
+      textMid: "#7A6A5A",
+      textLight: "#B0A090",
+      olive: "#8FA888",
+      blue: "#7A9DB8",
+    };
+
+    function FaithJourney() {
+      const [tab, setTab] = useState("habits");
+      const [habits, setHabits] = useState(() => { try { return JSON.parse(localStorage.getItem("fj_habits") || "{}"); } catch { return {}; } });
+      const [todos, setTodos] = useState(() => { try { return JSON.parse(localStorage.getItem("fj_todos") || "[]"); } catch { return []; } });
+      const [expandedPhase, setExpandedPhase] = useState(null);
+      const [verse] = useState(() => VERSES[Math.floor(Math.random() * VERSES.length)]);
+      const [streaks, setStreaks] = useState({});
+      const [selectedDay, setSelectedDay] = useState(getTodayKey);
+
+      const today = getTodayKey();
+      const weekDays = getWeekDays();
+      const isViewingToday = selectedDay === today;
+      const isSunday = new Date(selectedDay + "T12:00:00").getDay() === 0;
+      const isActuallyTodaySunday = new Date().getDay() === 0;
+      const todayHabits = HABITS.filter(h => !h.sundayOnly || isSunday);
+
+      useEffect(() => {
+        const link = document.createElement("link");
+        link.rel = "stylesheet"; link.href = FONT_LINK;
+        document.head.appendChild(link);
+      }, []);
+
+      useEffect(() => {
+        try { localStorage.setItem("fj_habits", JSON.stringify(habits)); } catch {}
+        const newStreaks = {};
+        HABITS.forEach(h => {
+          let streak = 0, d = new Date();
+          const todayKey = d.toISOString().split("T")[0];
+          // If today isn't checked yet, start counting from yesterday so the streak doesn't reset every morning
+          if (!habits[todayKey]?.[h.id]) d.setDate(d.getDate() - 1);
+          while (true) {
+            const key = d.toISOString().split("T")[0];
+            if (habits[key]?.[h.id]) { streak++; d.setDate(d.getDate() - 1); } else break;
+          }
+          newStreaks[h.id] = streak;
+        });
+        setStreaks(newStreaks);
+      }, [habits]);
+
+      useEffect(() => { try { localStorage.setItem("fj_todos", JSON.stringify(todos)); } catch {} }, [todos]);
+
+      function toggleHabit(id) {
+        setHabits(prev => ({ ...prev, [selectedDay]: { ...(prev[selectedDay] || {}), [id]: !prev[selectedDay]?.[id] } }));
+      }
+      function toggleTodo(id) {
+        setTodos(prev => prev.includes(id) ? prev.filter(t => t !== id) : [...prev, id]);
+      }
+
+      const todayCompleted = todayHabits.filter(h => habits[selectedDay]?.[h.id]).length;
+      const totalHabits = todayHabits.length;
+      const pct = totalHabits ? Math.round((todayCompleted / totalHabits) * 100) : 0;
+      const dayLabels = ["S", "M", "T", "W", "T", "F", "S"];
+
+      const serif = { fontFamily: "'Cormorant Garamond', Georgia, serif" };
+      const sans = { fontFamily: "'Jost', system-ui, sans-serif" };
+
+      return (
+        <div style={{ ...sans, minHeight: "100vh", background: C.bg, color: C.text, maxWidth: 480, margin: "0 auto" }}>
+
+          {/* HEADER */}
+          <div style={{ padding: "36px 24px 24px", background: C.surface, borderBottom: `1px solid ${C.border}` }}>
+            <div style={{ fontSize: 10, letterSpacing: 5, color: C.accentMid, textTransform: "uppercase", fontWeight: 500, marginBottom: 10 }}>
+              My Faith Journey
+            </div>
+            <div style={{ ...serif, fontSize: 34, fontWeight: 300, color: C.text, lineHeight: 1.2, marginBottom: 20 }}>
+              Welcome back,<br /><em>Mariana</em>
+            </div>
+            <div style={{ padding: "16px 20px", background: C.accentLight, borderRadius: 14, borderLeft: `3px solid ${C.accent}` }}>
+              <div style={{ ...serif, fontSize: 15, fontStyle: "italic", color: C.textMid, lineHeight: 1.75 }}>
+                "{verse.text}"
+              </div>
+              <div style={{ fontSize: 10, color: C.accent, marginTop: 8, letterSpacing: 2, fontWeight: 500 }}>
+                {verse.ref}
+              </div>
+            </div>
+          </div>
+
+          {/* TABS */}
+          <div style={{ display: "flex", background: C.surface, borderBottom: `1px solid ${C.border}` }}>
+            {[{ id: "habits", label: "Habits" }, { id: "journey", label: "Journey" }, { id: "todos", label: "To-Do" }].map(t => (
+              <button key={t.id} onClick={() => setTab(t.id)} style={{
+                flex: 1, padding: "14px 0", background: "none", border: "none", cursor: "pointer",
+                fontSize: 10, letterSpacing: 2.5, fontWeight: 500, textTransform: "uppercase",
+                fontFamily: "'Jost', system-ui, sans-serif",
+                color: tab === t.id ? C.accent : C.textLight,
+                borderBottom: tab === t.id ? `2px solid ${C.accent}` : "2px solid transparent",
+                transition: "all 0.2s",
+              }}>{t.label}</button>
+            ))}
+          </div>
+
+          {/* HABITS TAB */}
+          {tab === "habits" && (
+            <div style={{ padding: "28px 20px" }}>
+
+              <div style={{
+                display: "flex", alignItems: "center", gap: 22,
+                padding: "22px 24px", background: C.surface, borderRadius: 18,
+                border: `1px solid ${C.border}`, marginBottom: 22,
+                boxShadow: "0 2px 16px rgba(181,147,106,0.08)",
+              }}>
+                <div style={{ position: "relative", width: 70, height: 70, flexShrink: 0 }}>
+                  <svg width="70" height="70" viewBox="0 0 70 70">
+                    <circle cx="35" cy="35" r="29" fill="none" stroke={C.border} strokeWidth="5" />
+                    <circle cx="35" cy="35" r="29" fill="none" stroke={C.accent} strokeWidth="5"
+                      strokeDasharray={`${2 * Math.PI * 29}`}
+                      strokeDashoffset={`${2 * Math.PI * 29 * (1 - pct / 100)}`}
+                      strokeLinecap="round" transform="rotate(-90 35 35)"
+                      style={{ transition: "stroke-dashoffset 0.5s ease" }}
+                    />
+                  </svg>
+                  <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <span style={{ ...serif, fontSize: 17, color: C.text }}>{pct}%</span>
+                  </div>
+                </div>
+                <div>
+                  <div style={{ ...serif, fontSize: 24, fontWeight: 300, color: C.text, lineHeight: 1.2 }}>
+                    {todayCompleted} of {totalHabits}
+                  </div>
+                  <div style={{ fontSize: 12, color: C.textLight, marginTop: 4 }}>
+                    {pct === 100 ? "All done — beautiful day 🌟" : pct === 0 ? "Ready to begin? 🙏" : "You're doing great, keep going"}
+                  </div>
+                </div>
+              </div>
+
+              {isViewingToday && !isActuallyTodaySunday && (() => {
+                const daysUntilSunday = (7 - new Date().getDay()) % 7 || 7;
+                return (
+                  <div style={{
+                    display: "flex", alignItems: "center", gap: 14,
+                    padding: "12px 18px", marginBottom: 12,
+                    background: C.accentLight, border: `1px dashed ${C.accentMid}`, borderRadius: 12,
+                  }}>
+                    <span style={{ fontSize: 18 }}>⛪</span>
+                    <div>
+                      <div style={{ fontSize: 13, color: C.textMid }}>Sunday Mass</div>
+                      <div style={{ fontSize: 11, color: C.textLight, marginTop: 1 }}>
+                        {daysUntilSunday === 1 ? "Tomorrow — don't forget brunch! 🥂" : `In ${daysUntilSunday} days`}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {!isViewingToday && (
+                <div style={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                  padding: "12px 18px", marginBottom: 12,
+                  background: C.accentLight, border: `1px dashed ${C.accentMid}`, borderRadius: 12,
+                }}>
+                  <div style={{ fontSize: 13, color: C.textMid }}>Editing: {formatDayLabel(selectedDay)}</div>
+                  <button onClick={() => setSelectedDay(today)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 11, color: C.accent, fontFamily: "'Jost', system-ui, sans-serif" }}>back to today</button>
+                </div>
+              )}
+
+              <div style={{ marginBottom: 24 }}>
+                {todayHabits.map(habit => {
+                  const done = habits[selectedDay]?.[habit.id];
+                  const streak = streaks[habit.id] || 0;
+                  return (
+                    <div key={habit.id} onClick={() => toggleHabit(habit.id)} style={{
+                      display: "flex", alignItems: "center", gap: 14,
+                      padding: "15px 18px", marginBottom: 10,
+                      background: done ? C.accentLight : C.surface,
+                      border: `1px solid ${done ? C.accentMid : C.border}`,
+                      borderRadius: 14, cursor: "pointer", transition: "all 0.2s",
+                      boxShadow: done ? "none" : "0 1px 6px rgba(0,0,0,0.04)",
+                    }}>
+                      <div style={{
+                        width: 36, height: 36, borderRadius: "50%", flexShrink: 0,
+                        background: done ? C.accent : "transparent",
+                        border: `1.5px solid ${done ? C.accent : C.border}`,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontSize: done ? 15 : 18, color: done ? "#fff" : C.textLight,
+                        transition: "all 0.2s",
+                      }}>
+                        {done ? "✓" : habit.icon}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 14, color: done ? C.accent : C.text }}>{habit.label}</div>
+                        {streak > 0 && (
+                          <div style={{ fontSize: 11, color: C.accentMid, marginTop: 2 }}>🔥 {streak} day streak</div>
+                        )}
+                      </div>
+                      <div style={{ fontSize: 9, color: C.textLight, letterSpacing: 1.5, fontWeight: 500 }}>PH.{habit.phase}</div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div style={{ padding: "18px 20px", background: C.surface, borderRadius: 14, border: `1px solid ${C.border}` }}>
+                <div style={{ fontSize: 9, letterSpacing: 3, color: C.textLight, textTransform: "uppercase", fontWeight: 500, marginBottom: 14 }}>
+                  This Week
+                </div>
+                <div style={{ display: "flex", gap: 6 }}>
+                  {weekDays.map((day, i) => {
+                    const count = HABITS.filter(h => habits[day]?.[h.id]).length;
+                    const isToday = day === today;
+                    const isSelected = day === selectedDay;
+                    const label = dayLabels[new Date(day + "T12:00:00").getDay()];
+                    return (
+                      <div key={day} onClick={() => setSelectedDay(day)} style={{ flex: 1, textAlign: "center", cursor: "pointer" }}>
+                        <div style={{ fontSize: 10, color: isSelected ? C.accent : C.textLight, marginBottom: 6, fontWeight: isSelected ? 500 : 300 }}>{label}</div>
+                        <div style={{
+                          height: 36, borderRadius: 8,
+                          background: count === 0 ? C.bg : count >= HABITS.length - 1 ? C.accent : C.accentMid,
+                          border: `2px solid ${isSelected ? C.accent : "transparent"}`,
+                          outline: `1px solid ${isToday && !isSelected ? C.accent : C.border}`,
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          fontSize: 11, color: count > 0 ? "#fff" : C.border,
+                          transition: "all 0.2s",
+                        }}>
+                          {count > 0 ? count : ""}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* JOURNEY TAB */}
+          {tab === "journey" && (
+            <div style={{ padding: "28px 20px" }}>
+              <div style={{ marginBottom: 26 }}>
+                <div style={{ ...serif, fontSize: 28, fontWeight: 300, fontStyle: "italic", color: C.text, lineHeight: 1.2 }}>Your Path Home</div>
+                <div style={{ fontSize: 12, color: C.textLight, marginTop: 6, lineHeight: 1.7 }}>
+                  You returned on Good Friday & Easter. Every step is sacred.
+                </div>
+              </div>
+
+              {PHASES.map((phase, idx) => {
+                const isExpanded = expandedPhase === phase.id;
+                const isActive = phase.status === "active";
+                const isFuture = phase.status === "future";
+                return (
+                  <div key={phase.id} style={{ position: "relative" }}>
+                    {idx < PHASES.length - 1 && (
+                      <div style={{
+                        position: "absolute", left: 21, top: 48, bottom: -14, width: 2,
+                        background: isActive ? `linear-gradient(180deg, ${phase.accent}80 0%, ${C.border} 100%)` : C.border,
+                        zIndex: 0,
+                      }} />
+                    )}
+                    <div onClick={() => setExpandedPhase(isExpanded ? null : phase.id)} style={{
+                      display: "flex", gap: 16, alignItems: "flex-start",
+                      marginBottom: 14, cursor: "pointer", position: "relative", zIndex: 1,
+                    }}>
+                      <div style={{
+                        width: 44, height: 44, borderRadius: "50%", flexShrink: 0,
+                        background: isActive ? phase.accent : C.accentLight,
+                        border: `2px solid ${isActive ? phase.accent : C.border}`,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontSize: 18, opacity: isFuture ? 0.4 : 1,
+                      }}>
+                        {phase.icon}
+                      </div>
+                      <div style={{
+                        flex: 1, padding: "11px 16px",
+                        background: isActive ? C.surface : C.bg,
+                        borderRadius: 12, border: `1px solid ${C.border}`,
+                        boxShadow: isActive ? "0 2px 10px rgba(0,0,0,0.05)" : "none",
+                        opacity: isFuture ? 0.5 : 1,
+                      }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                          <div>
+                            <div style={{ fontSize: 9, letterSpacing: 2, color: isActive ? phase.accent : C.textLight, textTransform: "uppercase", fontWeight: 500, marginBottom: 3 }}>
+                              Phase {phase.id} · {isActive ? "Now" : phase.status === "upcoming" ? "Soon" : "Future"}
+                            </div>
+                            <div style={{ ...serif, fontSize: 17, color: isActive ? C.text : C.textMid }}>{phase.title}</div>
+                            <div style={{ fontSize: 12, color: C.textLight, marginTop: 1 }}>{phase.subtitle}</div>
+                          </div>
+                          <span style={{ fontSize: 10, color: C.textLight }}>{isExpanded ? "▲" : "▼"}</span>
+                        </div>
+                        {isExpanded && (
+                          <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${C.border}` }}>
+                            <div style={{ fontSize: 13, color: C.textMid, lineHeight: 1.7 }}>{phase.detail}</div>
+                            <div style={{ marginTop: 8, fontSize: 11, color: phase.accent, fontWeight: 500, letterSpacing: 0.5 }}>
+                              🎯 {phase.milestone}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+
+              <div style={{ marginTop: 10, padding: "20px", background: C.accentLight, borderRadius: 16, border: `1px solid ${C.accentMid}`, textAlign: "center" }}>
+                <div style={{ fontSize: 24, marginBottom: 10 }}>✝️</div>
+                <div style={{ ...serif, fontSize: 16, fontStyle: "italic", color: C.textMid, lineHeight: 1.7 }}>
+                  Returned to the Church on<br /><span style={{ color: C.accent }}>Good Friday & Easter 2025</span>
+                </div>
+                <div style={{ fontSize: 12, color: C.textLight, marginTop: 6 }}>{countSundaysSinceEaster()} Masses attended · Keep going 🤍</div>
+              </div>
+            </div>
+          )}
+
+          {/* TODOS TAB */}
+          {tab === "todos" && (
+            <div style={{ padding: "28px 20px" }}>
+              <div style={{ marginBottom: 24 }}>
+                <div style={{ ...serif, fontSize: 28, fontWeight: 300, fontStyle: "italic", color: C.text }}>Milestones & Steps</div>
+                <div style={{ fontSize: 12, color: C.textLight, marginTop: 4 }}>{todos.length} of {TODOS.length} completed</div>
+              </div>
+
+              {["Sacramental", "Prayer", "Community"].map(cat => {
+                const catTodos = TODOS.filter(t => t.category === cat);
+                return (
+                  <div key={cat} style={{ marginBottom: 28 }}>
+                    <div style={{ fontSize: 9, letterSpacing: 3, color: C.accent, textTransform: "uppercase", fontWeight: 500, marginBottom: 12 }}>
+                      {cat}
+                    </div>
+                    {catTodos.map(todo => {
+                      const done = todos.includes(todo.id);
+                      const dot = { high: C.accent, medium: C.olive, low: C.blue };
+                      return (
+                        <div key={todo.id} onClick={() => toggleTodo(todo.id)} style={{
+                          display: "flex", alignItems: "center", gap: 14,
+                          padding: "14px 18px", marginBottom: 8,
+                          background: done ? C.accentLight : C.surface,
+                          border: `1px solid ${done ? C.accentMid : C.border}`,
+                          borderRadius: 12, cursor: "pointer",
+                          opacity: done ? 0.6 : 1, transition: "all 0.2s",
+                          boxShadow: done ? "none" : "0 1px 5px rgba(0,0,0,0.04)",
+                        }}>
+                          <div style={{
+                            width: 22, height: 22, borderRadius: 6, flexShrink: 0,
+                            background: done ? C.accent : "transparent",
+                            border: `1.5px solid ${done ? C.accent : C.border}`,
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            fontSize: 12, color: "#fff", transition: "all 0.2s",
+                          }}>{done ? "✓" : ""}</div>
+                          <span style={{ fontSize: 17 }}>{todo.icon}</span>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: 14, color: done ? C.textLight : C.text, textDecoration: done ? "line-through" : "none" }}>
+                              {todo.label}
+                            </div>
+                          </div>
+                          <div style={{ width: 6, height: 6, borderRadius: "50%", background: dot[todo.priority], flexShrink: 0 }} />
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+
+              <div style={{ padding: "20px", background: C.accentLight, borderRadius: 16, border: `1px solid ${C.accentMid}`, textAlign: "center" }}>
+                <div style={{ ...serif, fontSize: 16, fontStyle: "italic", color: C.textMid, lineHeight: 1.8 }}>
+                  "She is clothed with strength and dignity,<br />and she laughs without fear of the future."
+                </div>
+                <div style={{ fontSize: 10, color: C.accent, marginTop: 10, letterSpacing: 2.5, fontWeight: 500 }}>Proverbs 31:25</div>
+              </div>
+            </div>
+          )}
+
+          <div style={{ height: 48 }} />
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<FaithJourney />);
+  </script>
+</body>
+</html>
