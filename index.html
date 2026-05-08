@@ -18,7 +18,7 @@
   <div id="root"></div>
 
   <script type="text/babel">
-    const { useState, useEffect } = React;
+    const { useState, useEffect, useRef } = React;
 
     const FONT_LINK = "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@300;400;500&display=swap";
 
@@ -110,6 +110,19 @@
       const [verse] = useState(() => VERSES[Math.floor(Math.random() * VERSES.length)]);
       const [streaks, setStreaks] = useState({});
       const [selectedDay, setSelectedDay] = useState(getTodayKey);
+      const [showCelebration, setShowCelebration] = useState(false);
+      const prevTodayCompleted = useRef(null);
+      const crossData = useRef(
+        Array.from({ length: 220 }, () => ({
+          left: Math.random() * 94 + 1,
+          delay: Math.random() * 4,
+          duration: 1.6 + Math.random() * 2.2,
+          size: 9 + Math.floor(Math.random() * 16),
+          shimmerDur: 0.22 + Math.random() * 0.42,
+          shimmerDelay: Math.random() * 0.6,
+          color: Math.random() > 0.38 ? '#B5936A' : '#D4B896',
+        }))
+      );
 
       const today = getTodayKey();
       const weekDays = getWeekDays();
@@ -143,7 +156,25 @@
 
       useEffect(() => { try { localStorage.setItem("fj_todos", JSON.stringify(todos)); } catch {} }, [todos]);
 
+      useEffect(() => {
+        const todayKey = getTodayKey();
+        const isSundayToday = new Date().getDay() === 0;
+        const habitsForToday = HABITS.filter(h => !h.sundayOnly || isSundayToday);
+        const completedCount = habitsForToday.filter(h => habits[todayKey]?.[h.id]).length;
+        const total = habitsForToday.length;
+        if (prevTodayCompleted.current !== null && prevTodayCompleted.current < total && completedCount === total && total > 0) {
+          setShowCelebration(true);
+          setTimeout(() => setShowCelebration(false), 4500);
+        }
+        prevTodayCompleted.current = completedCount;
+      }, [habits]);
+
       function toggleHabit(id) {
+        const turningOn = !habits[selectedDay]?.[id];
+        if (id === 'mass' && isSunday && turningOn) {
+          setShowCelebration(true);
+          setTimeout(() => setShowCelebration(false), 4500);
+        }
         setHabits(prev => ({ ...prev, [selectedDay]: { ...(prev[selectedDay] || {}), [id]: !prev[selectedDay]?.[id] } }));
       }
       function toggleTodo(id) {
@@ -159,7 +190,18 @@
       const sans = { fontFamily: "'Jost', system-ui, sans-serif" };
 
       return (
-        <div style={{ ...sans, minHeight: "100vh", background: C.bg, color: C.text, maxWidth: 480, margin: "0 auto" }}>
+        <>
+          <style dangerouslySetInnerHTML={{ __html: `
+            @keyframes rainCross {
+              0%   { transform: translateY(-60px); }
+              100% { transform: translateY(112vh); }
+            }
+            @keyframes shimmer {
+              0%, 100% { opacity: 0.1; filter: brightness(0.5); }
+              50%       { opacity: 1;   filter: brightness(2.2) drop-shadow(0 0 3px #D4B896); }
+            }
+          ` }} />
+          <div style={{ ...sans, minHeight: "100vh", background: C.bg, color: C.text, maxWidth: 480, margin: "0 auto" }}>
 
           {/* HEADER */}
           <div style={{ padding: "36px 24px 24px", background: C.surface, borderBottom: `1px solid ${C.border}` }}>
@@ -460,7 +502,21 @@
           )}
 
           <div style={{ height: 48 }} />
-        </div>
+          </div>
+
+          {showCelebration && (
+            <div style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 9999, overflow: "hidden" }}>
+              {crossData.current.map((c, i) => (
+                <div key={i} style={{
+                  position: "absolute", top: 0, left: `${c.left}%`,
+                  fontSize: c.size, color: c.color,
+                  animation: `rainCross ${c.duration}s ${c.delay}s linear both, shimmer ${c.shimmerDur}s ${c.shimmerDelay}s ease-in-out infinite`,
+                  userSelect: "none", lineHeight: 1,
+                }}>✝</div>
+              ))}
+            </div>
+          )}
+        </>
       );
     }
 
